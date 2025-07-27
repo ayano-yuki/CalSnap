@@ -18,7 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-genai.configure(api_key="AIzaSyDzzb6QBXCVjVZTPMCHZDPHltU9erpxyQI")
+genai.configure(api_key="＊＊ココにGeminiのAPIキーを入れてください。＊＊")
 
 def analyze_food_image(image_path, target_cal):
     try:
