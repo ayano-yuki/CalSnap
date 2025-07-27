@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>画像からカロリーを推定</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+        #preview {
+            margin-top: 1rem;
+            max-width: 300px;
+        }
+        button {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+        }
+        #result {
+            margin-top: 1rem;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>食事画像をアップロードしてカロリー推定</h1>
+    
+    <input type="file" id="imageInput" accept="image/*">
+    <img id="preview" src="" alt="画像プレビュー" />
+
+    <button onclick="uploadImage()">画像を送信</button>
+
+    <div id="result"></div>
+
+    <script>
+        const imageInput = document.getElementById("imageInput");
+        const preview = document.getElementById("preview");
+        const resultDiv = document.getElementById("result");
+
+        imageInput.addEventListener("change", () => {
+            const file = imageInput.files[0];
+            if (file) {
+                preview.src = URL.createObjectURL(file);
+            }
+        });
+
+        async function uploadImage() {
+            const file = imageInput.files[0];
+            if (!file) {
+                alert("画像を選択してください。");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            console.log("Sending image to server...");
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log(data)
+                resultDiv.textContent = `推定カロリー: ${data.Cal}`;
+            } catch (err) {
+                resultDiv.textContent = `エラー: ${err.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
