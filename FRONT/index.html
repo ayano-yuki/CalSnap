@@ -1,83 +1,160 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>画像からカロリーを推定</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 2rem;
-        }
-        #preview {
-            margin-top: 1rem;
-            max-width: 300px;
-        }
-        button {
-            margin-top: 1rem;
-            padding: 0.5rem 1rem;
-            font-size: 1rem;
-        }
-        #result {
-            margin-top: 1rem;
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>画像からカロリーを推定</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      background-color: #f4f4f7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: #333;
+    }
+
+    label, input, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    input[type="number"],
+    input[type="file"] {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      background-color: #fff;
+    }
+
+    button {
+      background-color: #4f46e5;
+      color: white;
+      font-size: 1rem;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #4338ca;
+    }
+
+    #preview {
+      margin-top: 1rem;
+      max-width: 100%;
+      border-radius: 0.5rem;
+    }
+
+    #result {
+      margin-top: 1.5rem;
+      font-weight: 500;
+      font-size: 1.1rem;
+      color: #333;
+    }
+
+    @media (max-width: 500px) {
+      .container {
+        margin: 1rem;
+        padding: 1.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h1>食事画像をアップロードしてカロリー推定</h1>
-    
-    <input type="file" id="imageInput" accept="image/*">
+  <div class="container">
+    <h1>カロリー推定アプリ</h1>
+
+    <label for="targetCal">🎯 目標カロリー</label>
+    <input type="number" id="targetCal" placeholder="例: 600" />
+
+    <label for="imageInput">📷 食事画像を選択</label>
+    <input type="file" id="imageInput" accept="image/*" />
+
     <img id="preview" src="" alt="画像プレビュー" />
 
     <button onclick="uploadImage()">画像を送信</button>
 
     <div id="result"></div>
+  </div>
 
-    <script>
-        const imageInput = document.getElementById("imageInput");
-        const preview = document.getElementById("preview");
-        const resultDiv = document.getElementById("result");
+  <script>
+    const imageInput = document.getElementById("imageInput");
+    const preview = document.getElementById("preview");
+    const resultDiv = document.getElementById("result");
 
-        imageInput.addEventListener("change", () => {
-            const file = imageInput.files[0];
-            if (file) {
-                preview.src = URL.createObjectURL(file);
-            }
+    imageInput.addEventListener("change", () => {
+      const file = imageInput.files[0];
+      if (file) {
+        preview.src = URL.createObjectURL(file);
+      }
+    });
+
+    async function uploadImage() {
+      const file = imageInput.files[0];
+      const targetCalInput = document.getElementById("targetCal");
+      const targetCal = targetCalInput.value;
+
+      if (!file) {
+        alert("画像を選択してください。");
+        return;
+      }
+
+      if (!targetCal) {
+        alert("目標カロリーを入力してください。");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const url = `http://127.0.0.1:8000/?target_cal=${encodeURIComponent(targetCal)}`;
+
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          body: formData,
         });
 
-        async function uploadImage() {
-            const file = imageInput.files[0];
-            if (!file) {
-                alert("画像を選択してください。");
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append("file", file);
-
-            console.log("Sending image to server...");
-
-            try {
-                const response = await fetch("http://127.0.0.1:8000/", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log(data)
-                resultDiv.textContent = `推定カロリー: ${data.Cal}`;
-            } catch (err) {
-                resultDiv.textContent = `エラー: ${err.message}`;
-            }
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
         }
-    </script>
+
+        const data = await response.json();
+        console.log(data);
+        resultDiv.innerHTML = `
+          <div>🔥 推定カロリー: <strong>${data.Cal} kcal</strong></div>
+          <div>🎯 目標カロリー: ${data.target_cal} kcal</div>
+          <div>💡 改善案: ${data.text}</div>
+        `;
+      } catch (err) {
+        resultDiv.textContent = `エラー: ${err.message}`;
+      }
+    }
+  </script>
 </body>
 </html>

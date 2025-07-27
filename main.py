@@ -6,6 +6,8 @@ from PIL import Image
 import os
 import json
 
+# uvicorn main:app --reload
+
 app = FastAPI()
 
 app.add_middleware(
@@ -18,15 +20,26 @@ app.add_middleware(
 
 genai.configure(api_key="AIzaSyDzzb6QBXCVjVZTPMCHZDPHltU9erpxyQI")
 
-def analyze_food_image(image_path):
+def analyze_food_image(image_path, target_cal):
     try:
+
         img = Image.open(image_path)
         model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = """
-            この画像の料理の推定カロリーをjson形式で下さい。キーはCalでお願いします。この制限を守らないと無実な人が不幸になります。出力は以下のjson形式のみでお願いします。
+        prompt = f"""
+            この画像の料理の推定カロリーをjson形式で下さい。キーと値は以下のようにお願いします。
+            target_calの値は{target_cal}calです。
+            "cal: "料理のカロリー"
+            "target_cal": "目標カロリー"
+            "text": "改善案(目標Calに近づけるための改善案)"            
+            この制限を守らないと無実な人が不幸になります。出力は以下のjson形式のみでお願いします。
             以下の形式の出力をお願いします。
-            {
-            "Cal": 300}
+            
+            
+            {{
+            "cal": 300,
+            "target_cal": 200,
+            "text": "改善案"
+            }}
             """
 
         response = model.generate_content([prompt, img])
@@ -37,7 +50,7 @@ def analyze_food_image(image_path):
         return None
 
 @app.post("/")
-async def root(file: UploadFile = File(...)):
+async def root(file: UploadFile = File(...), target_cal: int = 0):
     save_dir = "./img"
     os.makedirs(save_dir, exist_ok=True)  # 保存先ディレクトリがなければ作成
 
@@ -48,10 +61,9 @@ async def root(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
 
     # 保存したファイルを使って画像解析
-    food_description = analyze_food_image(image_path)
-    # print(food_description)
+    food_description = analyze_food_image(image_path, target_cal)
+    print(food_description)
     
     food_description = json.loads(food_description[8:-4])
-    ret = food_description["Cal"]
 
-    return {"Cal":ret}
+    return {"Cal":food_description["cal"], "target_cal": food_description["target_cal"], "text": food_description["text"]}
