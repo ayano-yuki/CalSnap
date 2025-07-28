@@ -6,8 +6,6 @@ from PIL import Image
 import os
 import json
 
-# uvicorn main:app --reload
-
 app = FastAPI()
 
 app.add_middleware(
